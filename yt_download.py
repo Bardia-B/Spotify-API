@@ -4,6 +4,7 @@ import random
 import time
 from pathlib import Path
 import streamlit as st
+import json
 
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -45,9 +46,8 @@ class QuietLogger:
         st.error(f"Download Error: {msg}")
 
 def create_download_dir():
-    """Create a downloads directory in the user's home directory"""
-    home = os.path.expanduser("~")
-    download_dir = os.path.join(home, "SpotifyDownloads")
+    """Create a downloads directory in the current folder"""
+    download_dir = os.path.join(os.getcwd(), "download")
     os.makedirs(download_dir, exist_ok=True)
     return download_dir
 
@@ -112,11 +112,67 @@ def download_with_retry(track_info, download_dir, max_retries=3):
 
     raise Exception("Download failed after all attempts")
 
+def get_downloads_db_path():
+    """Get the path to the downloads database file"""
+    return os.path.join(os.getcwd(), "download", "downloads.json")
+
+def load_downloads_db():
+    """Load the downloads database"""
+    db_path = get_downloads_db_path()
+    if os.path.exists(db_path):
+        try:
+            with open(db_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return {'tracks': []}
+    return {'tracks': []}
+
+def save_downloads_db(db):
+    """Save the downloads database"""
+    db_path = get_downloads_db_path()
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    with open(db_path, 'w', encoding='utf-8') as f:
+        json.dump(db, f, indent=2, ensure_ascii=False)
+
+def add_to_downloads(track_info, file_path):
+    """Add a track to the downloads database"""
+    db = load_downloads_db()
+    track_entry = {
+        'name': track_info['name'],
+        'artists': track_info['artists'],
+        'file_path': file_path,
+        'downloaded_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+        'album': track_info.get('album', ''),
+        'album_image': track_info.get('album_image', track_info.get('image_url', ''))
+    }
+    
+    # Check if track already exists
+    existing = next((t for t in db['tracks'] if t['file_path'] == file_path), None)
+    if not existing:
+        db['tracks'].append(track_entry)
+        save_downloads_db(db)
+
+def get_downloaded_tracks():
+    """Get list of downloaded tracks"""
+    db = load_downloads_db()
+    # Filter out tracks whose files no longer exist
+    existing_tracks = [
+        track for track in db['tracks']
+        if os.path.exists(track['file_path'])
+    ]
+    # Update the database if some files were removed
+    if len(existing_tracks) != len(db['tracks']):
+        db['tracks'] = existing_tracks
+        save_downloads_db(db)
+    return existing_tracks
+
 def download_track(track_info):
     """Download a single track"""
     try:
         download_dir = create_download_dir()
         file_path = download_with_retry(track_info, download_dir)
+        if file_path:
+            add_to_downloads(track_info, file_path)
         return file_path
     except Exception as e:
         st.error(f"Failed to download track: {str(e)}")
@@ -134,6 +190,8 @@ def download_tracks(tracks_info):
         try:
             status_text.text(f"Downloading {i+1}/{len(tracks_info)}: {track['name']}")
             file_path = download_with_retry(track, download_dir)
+            if file_path:
+                add_to_downloads(track, file_path)
             results.append((True, file_path))
         except Exception as e:
             results.append((False, str(e)))
