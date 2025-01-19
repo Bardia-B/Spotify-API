@@ -11,6 +11,8 @@ from spotify import (
     get_access_token, extract_spotify_id, get_track_info,
     get_album_info, get_playlist_info, format_duration, format_date
 )
+from yt_download import download_track, download_tracks
+import os
 
 # Custom CSS for better styling
 st.markdown("""
@@ -74,6 +76,22 @@ def display_audio_features(features):
     except Exception as e:
         st.warning("Could not display audio features")
 
+def handle_download(track_info):
+    """Handle the download of a single track"""
+    with st.spinner(f"Downloading {track_info['name']}..."):
+        file_path = download_track(track_info)
+        if file_path and os.path.exists(file_path):
+            with open(file_path, 'rb') as f:
+                st.download_button(
+                    label="Save MP3",
+                    data=f,
+                    file_name=os.path.basename(file_path),
+                    mime="audio/mpeg",
+                    key=f"save_{track_info['name']}"
+                )
+            return True
+    return False
+
 def display_track(track, index=None):
     with st.container():
         st.markdown("---")
@@ -104,7 +122,10 @@ def display_track(track, index=None):
         with cols[4]:
             if track.get('preview_url'):
                 st.audio(track['preview_url'])
-            st.button("⬇️ Download", key=f"download_{index}")
+            
+            download_clicked = st.button("⬇️ Download", key=f"download_{index}")
+            if download_clicked:
+                handle_download(track)
 
 def main():
     st.title("🎵 Spotify Track Fetcher")
@@ -153,7 +174,10 @@ def main():
                     st.write(f"📅 Released: {format_date(info['release_date'])}")
                     st.write(f"⏱️ Duration: {format_duration(info['duration_ms'])}")
                     st.write(f"🔗 [Open in Spotify]({info['external_urls']})")
-                    st.button("⬇️ Download", key="download_single")
+                    
+                    download_clicked = st.button("⬇️ Download", key="download_single")
+                    if download_clicked:
+                        handle_download(info)
                 
                 if info['audio_features']:
                     st.subheader("Audio Features")
@@ -177,6 +201,12 @@ def main():
                     st.markdown(f"*{', '.join(info['artists'])}*")
                     st.write(f"📅 Released: {format_date(info['release_date'])}")
                     st.write(f"🎵 Tracks: {info['total_tracks']}")
+                    
+                    if st.button("⬇️ Download All"):
+                        with st.spinner("Downloading all tracks..."):
+                            results = download_tracks(info['tracks'])
+                            success = sum(1 for r in results if r[0])
+                            st.success(f"Successfully downloaded {success} out of {len(results)} tracks")
                 
                 st.subheader("Tracks")
                 for track in info['tracks']:
@@ -197,6 +227,12 @@ def main():
                     if info['description']:
                         st.write(info['description'])
                     st.write(f"🎵 Total tracks: {info['total_tracks']}")
+                    
+                    if st.button("⬇️ Download All"):
+                        with st.spinner("Downloading all tracks..."):
+                            results = download_tracks(info['tracks'])
+                            success = sum(1 for r in results if r[0])
+                            st.success(f"Successfully downloaded {success} out of {len(results)} tracks")
                 
                 st.subheader("Tracks")
                 for i, track in enumerate(info['tracks'], 1):
