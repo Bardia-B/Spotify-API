@@ -13,6 +13,12 @@ A dual-interface application for downloading Spotify music. The project consists
 - Download history tracking
 - Batch download support for albums and playlists
 - Works independently without needing the API backend
+- View your personal Spotify statistics:
+  - Top tracks and listening history
+  - Most played artists
+  - Favorite genres visualization
+  - Music taste analysis with interactive charts
+  - Listening trends and patterns
 
 ### FastAPI Backend (Optional API)
 - RESTful API for developers
@@ -140,5 +146,9 @@ A dual-interface application for downloading Spotify music. The project consists
 - Both interfaces require Spotify API credentials
 - Download history is maintained for Streamlit interface only
 - Uses yt-dlp library for searching and downloading audio
+- Spotify stats feature is only available in the Streamlit interface
+- Stats include personalized music analysis and visualizations
+- User authentication required for viewing personal stats
+
 
 
