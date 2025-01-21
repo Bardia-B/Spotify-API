@@ -12,6 +12,7 @@ from spotify import (
     get_album_info, get_playlist_info, format_duration, format_date
 )
 from yt_download import download_track, download_tracks, get_downloaded_tracks
+from user_stats import display_user_stats
 import os
 
 # Custom CSS for better styling
@@ -172,7 +173,7 @@ def main():
     st.title("🎵 Spotify Track Fetcher")
     
     # Add tabs for different sections
-    tab1, tab2 = st.tabs(["Search & Download", "Downloaded Songs"])
+    tab1, tab2, tab3 = st.tabs(["Search & Download", "Downloaded Songs", "My Stats"])
     
     with tab1:
         st.write("Enter a Spotify URL (track, album, or playlist) to fetch its information")
@@ -288,6 +289,9 @@ def main():
     
     with tab2:
         display_downloaded_tracks()
+    
+    with tab3:
+        display_user_stats()
 
 if __name__ == "__main__":
     main()

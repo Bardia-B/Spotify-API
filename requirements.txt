@@ -2,4 +2,6 @@ streamlit==1.32.0
 spotipy==2.23.0
 python-dotenv==1.0.1
 requests==2.31.0
-python-decouple==3.8 
+python-decouple==3.8
+plotly==5.18.0
+pandas==2.2.0 
